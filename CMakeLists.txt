@@ -6,8 +6,12 @@ set(CMAKE_BUILD_TYPE DEBUG)
 
 message(STATUS "源码目录: " ${PROJECT_SOURCE_DIR})
 
+find_package(Eigen3)
+message(STATUS "Eigen目录: " ${EIGEN3_INCLUDE_DIR})
+
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
+    ${EIGEN3_INCLUDE_DIR}
 )
 
 file(GLOB PROJECT_SRC_FILES ./src/*cpp)
@@ -25,6 +29,12 @@ add_compile_definitions(XTCVB_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 add_executable(hello_test test/hello_test.cpp)
 target_link_libraries(hello_test gtest gtest_main pthread rt ${PROJECT_NAME})
 
+add_executable(hello_test_eigen test/hello_test_eigen.cpp)
+target_link_libraries(hello_test_eigen gtest gtest_main pthread rt ${PROJECT_NAME})
+
+
+
 include(GoogleTest)
 gtest_discover_tests(hello_test)
+gtest_discover_tests(hello_test_eigen)
 

@@ -2,6 +2,7 @@
 #define XTCVB_IMAGE_UTILS_H
 
 #include <iostream>
+#include <vector>
 #include <cstdio>
 
 #include <XiaoTuCVBox/Image.h>
@@ -12,18 +13,18 @@ namespace cv {
      * ReadPng - 读一个png格式的图片
      * 
      * @filename: 文件名
-     * @metadata: 描述数据
+     * @data: 图片数据
      * return: 图片数据,malloc申请的内存
      */
-    uint8_t * ReadPng(char const * filename, ImageMetaData * metadata);
+    bool ReadPng(char const * filename, std::vector<uint8_t> & data, ImageMetaData & metadata);
     /*
      * ReadPng - 读一个png格式的图片
      * 
      * @file: 标准文件指针
+     * @data: 图片数据
      * @metadata: 描述数据
-     * return: 图片数据,malloc申请的内存
      */
-    uint8_t * ReadPng(FILE * file, ImageMetaData * metadata);
+    bool ReadPng(FILE * file, std::vector<uint8_t> & data, ImageMetaData & metadata);
     /*
      * CheckPng - 检查是否为png文件
      * 
@@ -47,18 +48,18 @@ namespace cv {
      * WritePng - 写一个png格式的图片
      * 
      * @filename: 文件名
-     * @metadata: 描述数据
      * @data: 已经按照metadata组织好的像素矩阵
+     * @metadata: 描述数据
      */
-    bool WritePng(char const * filename, ImageMetaData const * metadata, uint8_t const * data);
+    bool WritePng(char const * filename, std::vector<uint8_t> const & data, ImageMetaData const & metadata);
     /*
      * WritePng - 写一个png格式的图片
      * 
      * @file: 标准文件指针
-     * @metadata: 描述数据
      * @data: 已经按照metadata组织好的像素矩阵
+     * @metadata: 描述数据
      */
-    bool WritePng(FILE * file, ImageMetaData const * metadata, uint8_t const * data);
+    bool WritePng(FILE * file, std::vector<uint8_t> const & data, ImageMetaData const & metadata);
 
 }
 }

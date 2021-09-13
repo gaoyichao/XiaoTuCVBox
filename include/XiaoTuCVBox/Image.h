@@ -24,6 +24,7 @@ namespace cv {
         int row_bytes;  // 每行数据字节长度
         ImageColorType color_type; // 颜色类型, RGB...
     };
+
 }
 }
 

@@ -9,8 +9,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-
-
 TEST(HelloTest, PngReadWrite) {
     std::string fname_str = "";
     xiaotu::cv::ImageMetaData metadata;

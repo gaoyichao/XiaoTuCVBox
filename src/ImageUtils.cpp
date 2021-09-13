@@ -12,7 +12,15 @@
 
 namespace xiaotu {
 namespace cv {
-
+    /*
+     * IsBigEndian - 判定宿主计算机是否是大端存储
+     */
+    bool IsBigEndian()
+    {
+        uint16_t data = 0x1234;
+        uint8_t *ptr = (uint8_t*)&data;
+        return (0x12 == *ptr);
+    }
     /*
      * ReadPng - 读一个png格式的图片
      * 
@@ -76,6 +84,9 @@ namespace cv {
         metadata.bit_depth = bit_depth;
         metadata.row_bytes = row_bytes;
         metadata.color_type = ParsePngColor(color_type);
+
+        if (16 == bit_depth && !IsBigEndian())
+            png_set_swap(png_ptr);
 
         data.resize(h * row_bytes);
         uint8_t * img_ptr = data.data();
@@ -197,6 +208,9 @@ namespace cv {
                                         PNG_COMPRESSION_TYPE_DEFAULT,
                                         PNG_FILTER_TYPE_DEFAULT);
         png_write_info(png_ptr, info_ptr);
+
+        if (!IsBigEndian())
+            png_set_swap(png_ptr);
 
         uint8_t const * img_ptr = data.data();
         for (int i = 0; i < metadata.height; i++)

@@ -9,6 +9,11 @@
 
 namespace xiaotu {
 namespace cv {
+
+    /*
+     * IsBigEndian - 判定宿主计算机是否是大端存储
+     */
+    bool IsBigEndian();
     /*
      * ReadPng - 读一个png格式的图片
      * 

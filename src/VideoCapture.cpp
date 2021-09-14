@@ -53,21 +53,21 @@ namespace cv {
         assert(-1 != re);
 
         /////////////////////////////////////////////////////////
-        memset(&mCropCap, 0, sizeof(mCropCap));
-        mCropCap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        re = ioctl(mModuleFd, VIDIOC_CROPCAP, &mCropCap);
-        if (-1 == re) {
-            fprintf(stderr, "ERROR VIDIOC_CROPCAP '%s': %d, %s\n", path.c_str(), errno, strerror(errno));
-            //exit(-1);
-        }
-        
-        mCrop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        mCrop.c = mCropCap.defrect;
-        re = ioctl(mModuleFd, VIDIOC_S_CROP, &mCrop);
-        if (-1 == re) {
-            fprintf(stderr, "ERROR VIDIOC_S_CROP '%s': %d, %s\n", path.c_str(), errno, strerror(errno));
-            //exit(-1);
-        }
+        //memset(&mCropCap, 0, sizeof(mCropCap));
+        //mCropCap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        //re = ioctl(mModuleFd, VIDIOC_CROPCAP, &mCropCap);
+        //if (-1 == re) {
+        //    fprintf(stderr, "ERROR VIDIOC_CROPCAP '%s': %d, %s\n", path.c_str(), errno, strerror(errno));
+        //    //exit(-1);
+        //}
+        //
+        //mCrop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        //mCrop.c = mCropCap.defrect;
+        //re = ioctl(mModuleFd, VIDIOC_S_CROP, &mCrop);
+        //if (-1 == re) {
+        //    fprintf(stderr, "ERROR VIDIOC_S_CROP '%s': %d, %s\n", path.c_str(), errno, strerror(errno));
+        //    //exit(-1);
+        //}
         /////////////////////////////////////////////////////////
 
         // v4l2_format
@@ -76,6 +76,13 @@ namespace cv {
         re = ioctl(mModuleFd, VIDIOC_G_FMT, &mFmt);
         if (-1 == re) {
             fprintf(stderr, "ERROR VIDIOC_G_FMT '%s': %d, %s\n", path.c_str(), errno, strerror(errno));
+            exit(-1);
+        }
+        mFmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+        re = ioctl(mModuleFd, VIDIOC_S_FMT, &mFmt);
+        if (-1 == re) {
+            fprintf(stderr, "ERROR VIDIOC_S_FMT '%s': %d, %s\n", path.c_str(), errno, strerror(errno));
+            fprintf(stderr, "不支持 V4L2_PIX_FMT_YUYV");
             exit(-1);
         }
 
@@ -113,6 +120,90 @@ namespace cv {
     {
         close(mModuleFd);
     }
+
+    /*
+     * EnumFmt - 枚举支持的格式
+     */
+    void VideoCapture::EnumFmt()
+    {
+        struct v4l2_fmtdesc desc;
+        desc.index = 0;
+        desc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+        int re = ioctl(mModuleFd, VIDIOC_ENUM_FMT, &desc);
+        while (0 == re) {
+            std::cout << desc << std::endl;
+            desc.index++;
+            re = ioctl(mModuleFd, VIDIOC_ENUM_FMT, &desc);
+        }
+    }
+
+    /*
+     * QueryCtrl - 查询控制指令的合理格式
+     */
+    void VideoCapture::QueryCtrl(uint32_t id)
+    {
+        struct v4l2_queryctrl ctrl;
+        ctrl.id = id;
+
+        int re = ioctl(mModuleFd, VIDIOC_QUERYCTRL, &ctrl);
+        if (-1 == re) {
+            perror("不支持 VIDIOC_QUERYCTRL");
+            return;
+        }
+
+        std::cout << ctrl << std::endl;
+    }
+
+    /*
+     * IsAutoGain - 判定设备是否是自动增益
+     */
+    bool VideoCapture::IsAutoGain()
+    {
+        struct v4l2_control ctrl;
+        ctrl.id = V4L2_CID_AUTOGAIN;
+        int re = ioctl(mModuleFd, VIDIOC_G_CTRL, &ctrl);
+        if (-1 == re) {
+            perror("不支持 V4L2_CID_AUTOGAIN");
+            return false;
+        }
+
+        return ctrl.value != 0;
+    }
+
+    /*
+     * GetCtrlInteger - 查询整型的控制指令
+     */
+    int VideoCapture::GetCtrlInteger(uint32_t id)
+    {
+        struct v4l2_control ctrl;
+        ctrl.id = id;
+        int re = ioctl(mModuleFd, VIDIOC_G_CTRL, &ctrl);
+        if (-1 == re) {
+            perror("不支持");
+            return 0;
+        }
+
+        return ctrl.value;
+    }
+
+    /*
+     * SetCtrlInteger - 设定整型的控制指令
+     */
+    bool VideoCapture::SetCtrlInteger(uint32_t id, int value)
+    {
+        struct v4l2_control ctrl;
+        ctrl.id = id;
+        ctrl.value = value;
+        int re = ioctl(mModuleFd, VIDIOC_S_CTRL, &ctrl);
+        if (-1 == re) {
+            perror("不支持 V4L2_CID_GAIN");
+            return false;
+        }
+
+        return true;
+    }
+
 
     /*
      * OnReadEvent - PollLoop循环的可读事件回调
@@ -486,4 +577,52 @@ namespace cv {
         return stream;
     }
 
+    std::ostream & operator << (std::ostream & stream, struct v4l2_fmtdesc const & desc)
+    {
+        stream << "--------------------------" << std::endl;
+        stream << "index: " << desc.index << std::endl;
+        stream << "type: " << __FormatTypeStr[desc.type] << std::endl;
+        stream << "flags: " << desc.flags << std::endl;
+
+        stream << desc.description << std::endl;
+
+        char str[80];
+        sprintf(str, "pixelformat: %c%c%c%c", desc.pixelformat & 0xFF,
+                                             (desc.pixelformat >> 8) & 0xFF,
+                                             (desc.pixelformat >> 16) & 0xFF,
+                                             (desc.pixelformat >> 24) & 0xFF);
+        stream << str << std::endl;
+   
+        return stream;
+    }
+
+    std::map<uint32_t, std::string> __gCtrlId = {
+        { V4L2_CID_BRIGHTNESS, "BRIGHTNESS, 亮度"},
+        { V4L2_CID_CONTRAST, "CONTRAST, 对比度"},
+        { V4L2_CID_SATURATION, "SATURATION, 饱和度"},
+        { V4L2_CID_HUE, "HUE, 色度"},
+        { V4L2_CID_EXPOSURE, "EXPOSURE, 曝光"},
+        { V4L2_CID_AUTOGAIN, "AUTOGAIN, 自动增益/曝光"},
+        { V4L2_CID_GAIN, "GAIN, 增益"},
+    };
+
+    std::map<uint32_t, std::string> __gCtrlType = {
+        { V4L2_CTRL_TYPE_INTEGER, "INTEGER"},
+        { V4L2_CTRL_TYPE_BOOLEAN, "BOOLEAN"},
+    };
+
+
+    std::ostream & operator << (std::ostream & stream, struct v4l2_queryctrl const & ctrl)
+    {
+        stream << "id:" << ctrl.id << __gCtrlId[ctrl.id] << std::endl;    
+        stream << "type:" << ctrl.type << ", " << __gCtrlType[ctrl.type] << std::endl;
+        stream << "name:" << ctrl.name << std::endl;
+        stream << "min:" << ctrl.minimum << std::endl;
+        stream << "max:" << ctrl.maximum << std::endl;
+        stream << "step:" << ctrl.step << std::endl;
+        stream << "default_value:" << ctrl.default_value << std::endl;
+        stream << "flags:" << std::hex << ctrl.flags << std::dec << std::endl;
+
+        return stream;
+    }
 

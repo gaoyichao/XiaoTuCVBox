@@ -20,7 +20,64 @@ void OnStdinRawMsg(xiaotu::cv::VideoCapturePtr capture, xiaotu::net::RawMsgPtr c
         case 'a':
             std::cout << capture->mCap << std::endl;
             std::cout << capture->mFmt << std::endl;
+            capture->EnumFmt();
             capture->ReleaseBufferInUse();
+            break;
+        case 'g':
+            std::cout << "---- V4L2_CID_BRIGHTNESS -----" << std::endl;
+            capture->QueryCtrl(V4L2_CID_BRIGHTNESS);
+            std::cout << "---- V4L2_CID_CONTRAST -----" << std::endl;
+            capture->QueryCtrl(V4L2_CID_CONTRAST);
+            std::cout << "---- V4L2_CID_SATURATION -----" << std::endl;
+            capture->QueryCtrl(V4L2_CID_SATURATION);
+            std::cout << "---- V4L2_CID_HUE -----" << std::endl;
+            capture->QueryCtrl(V4L2_CID_HUE);
+
+            std::cout << "---- V4L2_CID_EXPOSURE -----" << std::endl;
+            capture->QueryCtrl(V4L2_CID_EXPOSURE);
+
+            std::cout << "---- V4L2_CID_AUTOGAIN -----" << std::endl;
+            capture->QueryCtrl(V4L2_CID_AUTOGAIN);
+
+            std::cout << "---- V4L2_CID_GAIN -----" << std::endl;
+            capture->QueryCtrl(V4L2_CID_GAIN);
+
+            std::cout << "Gain:" << capture->GetCtrlInteger(V4L2_CID_GAIN) << std::endl;
+            std::cout << "亮度:" << capture->GetCtrlInteger(V4L2_CID_BRIGHTNESS) << std::endl;
+            std::cout << "对比度:" << capture->GetCtrlInteger(V4L2_CID_CONTRAST) << std::endl;
+            std::cout << "饱和度:" << capture->GetCtrlInteger(V4L2_CID_SATURATION) << std::endl;
+            std::cout << "色度:" << capture->GetCtrlInteger(V4L2_CID_HUE) << std::endl;
+
+            break;
+        case 'h':
+            capture->SetCtrlInteger(V4L2_CID_GAIN, 10);
+            break;
+        case 'H':
+            capture->SetCtrlInteger(V4L2_CID_GAIN, 64);
+            break;
+        case 'i':
+            capture->SetCtrlInteger(V4L2_CID_BRIGHTNESS, -32);
+            break;
+        case 'I':
+            capture->SetCtrlInteger(V4L2_CID_BRIGHTNESS, 32);
+            break;
+        case 'j':
+            capture->SetCtrlInteger(V4L2_CID_CONTRAST, 10);
+            break;
+        case 'J':
+            capture->SetCtrlInteger(V4L2_CID_CONTRAST, 90);
+            break;
+        case 'k':
+            capture->SetCtrlInteger(V4L2_CID_SATURATION, 10);
+            break;
+        case 'K':
+            capture->SetCtrlInteger(V4L2_CID_SATURATION, 110);
+            break;
+        case 'l':
+            capture->SetCtrlInteger(V4L2_CID_HUE, -110);
+            break;
+        case 'L':
+            capture->SetCtrlInteger(V4L2_CID_HUE, 110);
             break;
         default:
             break;
@@ -30,7 +87,6 @@ void OnStdinRawMsg(xiaotu::cv::VideoCapturePtr capture, xiaotu::net::RawMsgPtr c
 void OnRead(xiaotu::cv::VideoCapture::BufferPtr const & buffer)
 {
     gBuffer = buffer;
-    std::cout << __FUNCTION__ << ":" << gBuffer->id << std::endl;
 }
 
 int main(int argc, char *argv[])

@@ -17,7 +17,7 @@ namespace cv {
         public:
             struct Buffer {
                 Buffer() : start(nullptr), length(0) {}
-                ~Buffer() { Free(); std::cout << __FILE__ << ":" << __LINE__ << std::endl; }
+                ~Buffer() { Free(); }
 
                 inline void Free()
                 {
@@ -50,6 +50,15 @@ namespace cv {
 
             void OnReadEvent();
             void ReleaseBufferInUse();
+
+            void EnumFmt();
+            void QueryCtrl(uint32_t id);
+
+            int GetCtrlInteger(uint32_t id);
+            bool SetCtrlInteger(uint32_t id, int value);
+
+            bool IsAutoGain();
+
 
             int NumBuffers() const { return mNumBuffers; }
             int GetFd() const { return mModuleFd; }
@@ -120,7 +129,10 @@ namespace cv {
     std::ostream & operator << (std::ostream & stream, struct v4l2_rect const & rect);
     std::ostream & operator << (std::ostream & stream, struct v4l2_cropcap const & cap);
     std::ostream & operator << (std::ostream & stream, struct v4l2_fract const & fract);
+
     std::ostream & operator << (std::ostream & stream, struct v4l2_format const & format);
+    std::ostream & operator << (std::ostream & stream, struct v4l2_fmtdesc const & desc);
+    std::ostream & operator << (std::ostream & stream, struct v4l2_queryctrl const & ctrl);
 
 
     /*

@@ -6,6 +6,8 @@
 #include <linux/videodev2.h>
 
 #include <cassert>
+#include <mutex>
+
 #include <XiaoTuNetBox/EventHandler.h>
 
 namespace xiaotu {
@@ -34,15 +36,21 @@ namespace cv {
                     assert(start);
                 }
 
-                void   *start;
+                void *start;
                 size_t  length;
+                int id;
             };
+
+            typedef std::shared_ptr<Buffer> BufferPtr;
+            typedef std::shared_ptr<const Buffer> BufferConstPtr;
 
         public:
             VideoCapture(std::string const & path, int nbuf);
             ~VideoCapture();
 
             void OnReadEvent();
+            void ReleaseBufferInUse();
+
             int NumBuffers() const { return mNumBuffers; }
             int GetFd() const { return mModuleFd; }
             xiaotu::net::PollEventHandlerPtr & GetHandler() { return mEventHandler; }
@@ -50,10 +58,14 @@ namespace cv {
             int mModuleFd;
             xiaotu::net::PollEventHandlerPtr mEventHandler;
             int mNumBuffers;
-            struct Buffer *mBuffers;
+
+            std::vector<BufferPtr> mBuffers;
+            BufferPtr mBufferInUse;
+            bool mUsingBuffer;
+            std::mutex mBufferInUseMutex;
 
         public:
-            typedef std::function<void(struct Buffer * buffer)> CaptureCB;
+            typedef std::function<void(BufferPtr const & buffer)> CaptureCB;
             void SetCaptureCB(CaptureCB cb) { mCaptureCB = std::move(cb); }
             CaptureCB mCaptureCB;
 
@@ -94,6 +106,10 @@ namespace cv {
     typedef std::shared_ptr<VideoCapture> VideoCapturePtr;
     typedef std::shared_ptr<const VideoCapture> VideoCaptureConstPtr;
 
+
+}
+}
+
     /*******************************************************************************************************/
 
     /*
@@ -104,6 +120,7 @@ namespace cv {
     std::ostream & operator << (std::ostream & stream, struct v4l2_rect const & rect);
     std::ostream & operator << (std::ostream & stream, struct v4l2_cropcap const & cap);
     std::ostream & operator << (std::ostream & stream, struct v4l2_fract const & fract);
+    std::ostream & operator << (std::ostream & stream, struct v4l2_format const & format);
 
 
     /*
@@ -121,8 +138,6 @@ namespace cv {
     }
 
 
-}
-}
 
 #endif
 

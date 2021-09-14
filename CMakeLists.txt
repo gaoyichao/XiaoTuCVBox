@@ -41,7 +41,7 @@ add_executable(hello_test_opencv test/hello_test_opencv.cpp)
 target_link_libraries(hello_test_opencv gtest gtest_main pthread rt XiaoTuNetBox ${OpenCV_LIBRARIES} ${PROJECT_NAME})
 
 add_executable(t_stdin_v4l2_talk test/t_stdin_v4l2_talk.cpp)
-target_link_libraries(t_stdin_v4l2_talk gtest gtest_main pthread rt XiaoTuNetBox ${PROJECT_NAME})
+target_link_libraries(t_stdin_v4l2_talk gtest gtest_main pthread rt XiaoTuNetBox ${OpenCV_LIBRARIES} ${PROJECT_NAME})
 
 
 

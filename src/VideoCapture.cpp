@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <cstring>
 #include <cassert>
+#include <map>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -18,6 +19,11 @@
 namespace xiaotu {
 namespace cv {
 
+    /*
+     * VideoCapture - 构造函数
+     * 
+     * 打开设备 --> 查看设备功能 --> 设置图片格式 --> 申请缓存 --> 用户指针映射
+     */
     VideoCapture::VideoCapture(std::string const & path, int nbuf)
     {
         mModuleFd = open(path.c_str(), O_RDWR | O_NONBLOCK); 
@@ -86,9 +92,16 @@ namespace cv {
             exit(-1);
         }
 
-        mBuffers = new Buffer[mNumBuffers];
-        for (int i = 0; i < mNumBuffers; i++)
-            mBuffers[i].Alloc(mFmt.fmt.pix.sizeimage);
+        mBuffers.resize(mNumBuffers);
+        for (int i = 0; i < mNumBuffers; i++) {
+            mBuffers[i] = BufferPtr(new Buffer);
+            mBuffers[i]->Alloc(mFmt.fmt.pix.sizeimage);
+            mBuffers[i]->id = i + 1;
+        }
+        mBufferInUse = BufferPtr(new Buffer);
+        mBufferInUse->Alloc(mFmt.fmt.pix.sizeimage);
+        mBufferInUse->id = 0;
+        mUsingBuffer = false;
 
         mEventHandler = xiaotu::net::PollEventHandlerPtr(new xiaotu::net::PollEventHandler(mModuleFd));
         mEventHandler->EnableRead(true);
@@ -98,10 +111,14 @@ namespace cv {
 
     VideoCapture::~VideoCapture()
     {
-        delete [] mBuffers;
         close(mModuleFd);
     }
 
+    /*
+     * OnReadEvent - PollLoop循环的可读事件回调
+     * 
+     * 读数据 --> 替换缓存 --> 应用回调 --> 缓存重入列
+     */
     void VideoCapture::OnReadEvent()
     {
         struct v4l2_buffer buf;
@@ -124,21 +141,39 @@ namespace cv {
         }
 
         for (int i = 0; i < mNumBuffers; i++) {
-            if (buf.m.userptr == (unsigned long)mBuffers[i].start && buf.length == mBuffers[i].length) {
-                printf("缓存 %d\n", i);
-                if (mCaptureCB)
-                    mCaptureCB(&mBuffers[i]);
+            if (buf.m.userptr == (unsigned long)mBuffers[i]->start && buf.length == mBuffers[i]->length) {
+                if (mCaptureCB && !mUsingBuffer) {
+                    mBufferInUseMutex.lock();
+                    mUsingBuffer = true;
+                    std::swap(mBufferInUse, mBuffers[i]);
+                    mBufferInUseMutex.unlock();
+                    
+                    mCaptureCB(mBufferInUse);
+
+                    buf.m.userptr = (unsigned long)mBuffers[i]->start;
+                    buf.length = mBuffers[i]->length;
+                }
             }
         }
-
-
 
         if (-1 == ioctl(mModuleFd, VIDIOC_QBUF, &buf)) {
             perror("VIDIOC_QBUF");
             exit(-1);
         }
     }
+
+    void VideoCapture::ReleaseBufferInUse()
+    {
+        mBufferInUseMutex.lock();
+        mUsingBuffer = false;
+        mBufferInUseMutex.unlock();
+    }
     
+    /*
+     * StartCapturing - 开始读图像
+     * 
+     * 缓存入列 --> 开始采集
+     */
     void VideoCapture::StartCapturing()
     {
         for (int i = 0; i < mNumBuffers; i++) {
@@ -148,8 +183,8 @@ namespace cv {
             buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
             buf.memory = V4L2_MEMORY_USERPTR;
             buf.index = i;
-            buf.m.userptr = (unsigned long)mBuffers[i].start;
-            buf.length = mBuffers[i].length;
+            buf.m.userptr = (unsigned long)mBuffers[i]->start;
+            buf.length = mBuffers[i]->length;
 
             if (-1 == ioctl(mModuleFd, VIDIOC_QBUF, &buf)) {
                 fprintf(stderr, "ERROR VIDIOC_QBUF '%s': %d, %s\n", __FILE__, errno, strerror(errno));
@@ -162,7 +197,6 @@ namespace cv {
             fprintf(stderr, "ERROR VIDIOC_STREAMON '%s': %d, %s\n", __FILE__, errno, strerror(errno));
             exit(-1);
         }
-
     }
 
     /*
@@ -222,6 +256,10 @@ namespace cv {
         mPrio = tmp;
         return mPrio == prio;
     }
+
+}
+}
+
 
     /*******************************************************************************************************/
 
@@ -408,6 +446,44 @@ namespace cv {
 
         return stream;
     }
-}
-}
+
+    char const * __FormatTypeStr[] = {
+        {0},
+        {"V4L2_BUF_TYPE_VIDEO_CAPTURE"},
+        {"V4L2_BUF_TYPE_VIDEO_OUTPUT"},
+        {"V4L2_BUF_TYPE_VIDEO_OVERLAY"},
+        {"V4L2_BUF_TYPE_VBI_CAPTURE"},
+        {"V4L2_BUF_TYPE_VBI_OUTPUT"},
+        {"V4L2_BUF_TYPE_SLICED_VBI_CAPTURE"},
+        {"V4L2_BUF_TYPE_SLICED_VBI_OUTPUT"},
+        {"V4L2_BUF_TYPE_VIDEO_OUTPUT_OVERLAY"},
+        {"V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE"},
+        {"V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE"},
+        {"V4L2_BUF_TYPE_SDR_CAPTURE"},
+        {"V4L2_BUF_TYPE_SDR_OUTPUT"},
+    };
+
+    std::map<uint32_t, std::string> __gPixelFormat = {
+        { V4L2_PIX_FMT_RGB332, "V4L2_PIX_FMT_RGB332"},
+        { V4L2_PIX_FMT_ARGB444, "V4L2_PIX_FMT_ARGB444"},
+
+        { V4L2_PIX_FMT_YUYV, "V4L2_PIX_FMT_YUYV"},
+    };
+
+    std::ostream & operator << (std::ostream & stream, struct v4l2_format const & format)
+    {
+        stream << "type: " << __FormatTypeStr[format.type] << std::endl;
+        stream << "width: " << format.fmt.pix.width << std::endl;
+        stream << "height:" << format.fmt.pix.height << std::endl;
+        stream << "bytesperline:" << format.fmt.pix.bytesperline << std::endl;
+        stream << "sizeimage:" << format.fmt.pix.sizeimage << std::endl;
+        char str[80];
+        sprintf(str, "pixelformat: %c%c%c%c",  format.fmt.pix.pixelformat & 0xFF,
+                                                (format.fmt.pix.pixelformat >> 8) & 0xFF,
+                                                (format.fmt.pix.pixelformat >> 16) & 0xFF,
+                                                (format.fmt.pix.pixelformat >> 24) & 0xFF);
+        stream << str << std::endl;
+        return stream;
+    }
+
 

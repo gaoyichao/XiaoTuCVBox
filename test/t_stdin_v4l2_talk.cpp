@@ -5,6 +5,7 @@
 #include <XiaoTuCVBox/Image.h>
 #include <XiaoTuCVBox/ImageUtils.h>
 #include <XiaoTuCVBox/VideoCapture.h>
+#include <XiaoTuCVBox/QrCodeDetector.h>
 
 #include <XiaoTuNetBox/Connection.h>
 #include <XiaoTuNetBox/PollLoop.h>
@@ -99,6 +100,9 @@ int main(int argc, char *argv[])
     std::string dev_path(argv[1]);
     gBuffer.reset();
 
+    xiaotu::cv::ArtMarkerDetector detector;
+    std::vector<xiaotu::cv::ArtMarker> markers;
+
 	xiaotu::cv::VideoCapturePtr capture(new xiaotu::cv::VideoCapture(dev_path, 8));
     capture->SetCaptureCB(std::bind(&OnRead, std::placeholders::_1));
     capture->StartCapturing();
@@ -118,7 +122,13 @@ int main(int argc, char *argv[])
 
             cv::Mat yuyv(img_size, CV_8UC2, gBuffer->start);
             cv::Mat bgr(img_size, CV_8UC3);
+            cv::Mat gray(img_size, CV_8UC1);
             cv::cvtColor(yuyv, bgr, cv::COLOR_YUV2BGR_YUYV);
+            cv::cvtColor(bgr, gray, cv::COLOR_BGR2GRAY);
+
+            int n = detector.ScanGrayImg(gray, markers);
+            detector.Draw(bgr, markers);
+            std::cout << "检查到 " << n << " 个二维码" << std::endl;
 
             cv::imshow("bgr", bgr);
             cv::waitKey(1);

@@ -7,6 +7,9 @@ set(CMAKE_BUILD_TYPE DEBUG)
 message(STATUS "源码目录: " ${PROJECT_SOURCE_DIR})
 
 
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+find_package(ZBar0)
+
 find_package(OpenCV 4.0.0)
 message(STATUS "OpenCV头文件目录: " ${OpenCV_INCLUDE_DIRS})
 
@@ -17,6 +20,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/include
     ${OpenCV_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIR}
+    ${ZBAR_INCLUDE_DIR}
 )
 
 file(GLOB PROJECT_SRC_FILES ./src/*cpp)
@@ -41,7 +45,10 @@ add_executable(hello_test_opencv test/hello_test_opencv.cpp)
 target_link_libraries(hello_test_opencv gtest gtest_main pthread rt XiaoTuNetBox ${OpenCV_LIBRARIES} ${PROJECT_NAME})
 
 add_executable(t_stdin_v4l2_talk test/t_stdin_v4l2_talk.cpp)
-target_link_libraries(t_stdin_v4l2_talk gtest gtest_main pthread rt XiaoTuNetBox ${OpenCV_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(t_stdin_v4l2_talk gtest gtest_main pthread rt XiaoTuNetBox ${ZBAR_LIBRARIES} ${OpenCV_LIBRARIES} ${PROJECT_NAME})
+
+add_executable(t_bar_qrcode test/t_bar_qrcode.cpp)
+target_link_libraries(t_bar_qrcode gtest gtest_main pthread rt XiaoTuNetBox ${ZBAR_LIBRARIES} ${OpenCV_LIBRARIES} ${PROJECT_NAME})
 
 
 

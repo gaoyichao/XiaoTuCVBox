@@ -129,6 +129,9 @@ int main(int argc, char *argv[])
             int n = detector.ScanGrayImg(gray, markers);
             detector.Draw(bgr, markers);
             std::cout << "检查到 " << n << " 个二维码" << std::endl;
+            for (int i = 0; i < n; i++) {
+                std::cout << "[" << i << "]" << markers[i].msg << std::endl;
+            }
 
             cv::imshow("bgr", bgr);
             cv::waitKey(1);

@@ -42,6 +42,7 @@ namespace cv {
 
                     for (int i = 0; i < it->get_location_size(); i++)
                         markers[idx].location.push_back(::cv::Point(it->get_location_x(i), it->get_location_y(i)));
+                    idx++;
                 }
 
                 return n;

@@ -14,7 +14,7 @@ TEST(zbar, qrcode) {
     std::string fname_str = "";
     std::vector<uint8_t> data;
 
-    fname_str = std::string(XTCVB_SOURCE_DIR) + "/resources/qrcode.png";
+    fname_str = "out.png";
     std::cout << fname_str << std::endl;
 
     zbar::ImageScanner scanner;

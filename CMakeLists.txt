@@ -6,15 +6,16 @@ set(CMAKE_BUILD_TYPE DEBUG)
 
 message(STATUS "源码目录: " ${PROJECT_SOURCE_DIR})
 
-
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-find_package(ZBar0)
-
 find_package(OpenCV 4.0.0)
 message(STATUS "OpenCV头文件目录: " ${OpenCV_INCLUDE_DIRS})
 
 find_package(Eigen3)
 message(STATUS "Eigen头文件目录: " ${EIGEN3_INCLUDE_DIR})
+
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+find_package(ZBar0)
+find_package(Zint)
+message(STATUS "Zint 库文件: " ${ZINT_LIBRARY})
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
@@ -24,7 +25,6 @@ include_directories(
 )
 
 file(GLOB PROJECT_SRC_FILES ./src/*cpp)
-message("${PROJECT_SRC_FILES}")
 
 add_library(${PROJECT_NAME} SHARED ${PROJECT_SRC_FILES})
 target_link_libraries(${PROJECT_NAME} XiaoTuNetBox png)
@@ -50,6 +50,8 @@ target_link_libraries(t_stdin_v4l2_talk gtest gtest_main pthread rt XiaoTuNetBox
 add_executable(t_bar_qrcode test/t_bar_qrcode.cpp)
 target_link_libraries(t_bar_qrcode gtest gtest_main pthread rt XiaoTuNetBox ${ZBAR_LIBRARIES} ${OpenCV_LIBRARIES} ${PROJECT_NAME})
 
+add_executable(t_bar_qrcode_generate test/t_bar_qrcode_generate.cpp)
+target_link_libraries(t_bar_qrcode_generate gtest gtest_main pthread rt XiaoTuNetBox ${ZINT_LIBRARY} ${ZBAR_LIBRARIES} ${OpenCV_LIBRARIES} ${PROJECT_NAME})
 
 
 
